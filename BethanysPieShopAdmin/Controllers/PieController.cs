@@ -31,10 +31,19 @@ namespace BethanysPieShopAdmin.Controllers
 
         public async Task<IActionResult> Add()
         {
-            var allCategories = await _categoryRepository.GetAllCategoriesAsync();
-            IEnumerable<SelectListItem> selectListItems = new SelectList(allCategories, "CategoryId", "Name", null);
-            PieAddViewModel pieAddViewModel = new() { Categories = selectListItems };
-            return View(pieAddViewModel);
+            try
+            {
+                var allCategories = await _categoryRepository.GetAllCategoriesAsync();
+                IEnumerable<SelectListItem> selectListItems = new SelectList(allCategories, "CategoryId", "Name", null);
+                PieAddViewModel pieAddViewModel = new() { Categories = selectListItems };
+                return View(pieAddViewModel);
+            }
+            catch (Exception ex)
+            {
+                ViewData["ErrorMessage"] = $"There was an error: {ex.Message}";
+            }
+
+            return View(new PieAddViewModel());
         }
 
         [HttpPost]

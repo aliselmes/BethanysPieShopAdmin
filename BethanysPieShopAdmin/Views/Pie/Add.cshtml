@@ -1,5 +1,10 @@
 ﻿@model PieAddViewModel
 
+@if (ViewData["ErrorMessage"] != null)
+{
+    <p class="text-danger">@ViewData["ErrorMessage"]</p>
+}
+
 <form method="post" asp-controller="Pie" asp-action="Add">
     <div asp-validation-summary="All" class="text-danger"></div>
     <div class="mb-3">
