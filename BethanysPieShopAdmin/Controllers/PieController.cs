@@ -40,22 +40,31 @@ namespace BethanysPieShopAdmin.Controllers
         [HttpPost]
         public async Task<IActionResult> Add(PieAddViewModel pieAddViewModel)
         {
-            Pie pie = new()
+            if (ModelState.IsValid)
             {
-                CategoryId = pieAddViewModel.Pie.CategoryId,
-                ShortDescription = pieAddViewModel.Pie.ShortDescription,
-                LongDescription = pieAddViewModel.Pie.LongDescription,
-                Price = pieAddViewModel.Pie.Price,
-                AllergyInformation = pieAddViewModel.Pie.AllergyInformation,
-                ImageThumbnailUrl = pieAddViewModel.Pie.ImageThumbnailUrl,
-                ImageUrl = pieAddViewModel.Pie.ImageUrl,
-                InStock = pieAddViewModel.Pie.InStock,
-                IsPieOfTheWeek = pieAddViewModel.Pie.IsPieOfTheWeek,
-                Name = pieAddViewModel.Pie.Name
-            };
+                Pie pie = new()
+                {
+                    CategoryId = pieAddViewModel.Pie.CategoryId,
+                    ShortDescription = pieAddViewModel.Pie.ShortDescription,
+                    LongDescription = pieAddViewModel.Pie.LongDescription,
+                    Price = pieAddViewModel.Pie.Price,
+                    AllergyInformation = pieAddViewModel.Pie.AllergyInformation,
+                    ImageThumbnailUrl = pieAddViewModel.Pie.ImageThumbnailUrl,
+                    ImageUrl = pieAddViewModel.Pie.ImageUrl,
+                    InStock = pieAddViewModel.Pie.InStock,
+                    IsPieOfTheWeek = pieAddViewModel.Pie.IsPieOfTheWeek,
+                    Name = pieAddViewModel.Pie.Name
+                };
 
-            await _pieRepository.AddPieAsync(pie);
-            return RedirectToAction(nameof(Index));
+                await _pieRepository.AddPieAsync(pie);
+                return RedirectToAction(nameof(Index));
+            }
+
+            var allCategories = await _categoryRepository.GetAllCategoriesAsync();
+            IEnumerable<SelectListItem> selectListItems = new SelectList(allCategories, "CategoryId", "Name", null);
+            pieAddViewModel.Categories = selectListItems;
+
+            return View(pieAddViewModel);
         }
     }
 }
