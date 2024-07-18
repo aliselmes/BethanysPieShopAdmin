@@ -18,12 +18,12 @@ namespace BethanysPieShopAdmin.Models.Repositories
 
         public async Task<IEnumerable<Category>> GetAllCategoriesAsync()
         {
-            return await _bethanysPieShopDbContext.Categories.OrderBy(p => p.CategoryId).ToListAsync();
+            return await _bethanysPieShopDbContext.Categories.OrderBy(p => p.CategoryId).AsNoTracking().ToListAsync();
         }
 
         public async Task<Category?> GetCategoryByIdAsync(int id)
         {
-            return await _bethanysPieShopDbContext.Categories.Include(p => p.Pies)
+            return await _bethanysPieShopDbContext.Categories.Include(p => p.Pies).AsNoTracking()
                 .FirstOrDefaultAsync(c => c.CategoryId == id);
         }
     }
