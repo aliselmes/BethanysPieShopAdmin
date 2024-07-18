@@ -35,5 +35,18 @@ namespace BethanysPieShopAdmin.Controllers
 
             return View(selectedCategory);
         }
+
+        public IActionResult Add()
+        {
+            return View();
+        }
+
+        // we add the Bind() here to prevent over posting - we only allow the user to post data about these 3 properties, and not others we don't wan the user to change.
+        [HttpPost]
+        public async Task<IActionResult> Add([Bind("Name,Description,DateAdded")] Category category)
+        {
+            await _categoryRepository.AddCategoryAsync(category);
+            return RedirectToAction(nameof(Index));
+        }
     }
 }
