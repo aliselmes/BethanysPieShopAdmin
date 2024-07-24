@@ -70,5 +70,82 @@ namespace BethanysPieShopAdmin.Models.Repositories
                 throw new ArgumentException($"The pie to delete can't be found.");
             }
         }
+
+        public async Task<int> GetAllPiesCountAsync()
+        {
+            var count = await _bethanysPieShopDbContext.Pies.CountAsync();
+            return count;
+        }
+
+        public async Task<IEnumerable<Pie>> GetPiesPagedAsync(int? pageNumber, int pageSize)
+        {
+            IQueryable<Pie> pies = from p in _bethanysPieShopDbContext.Pies select p;
+
+            pageNumber ??= 1;
+
+            pies = pies.Skip((pageNumber.Value - 1) * pageSize).Take(pageSize);
+
+            return await pies.AsNoTracking().ToListAsync();
+        }
+
+        public async Task<IEnumerable<Pie>> GetPiesSortedAndPagedAsync(string sortBy, int? pageNumber, int pageSize)
+        {
+            IQueryable<Pie> pies = from p in _bethanysPieShopDbContext.Pies
+                                   select p;
+            switch (sortBy)
+            {
+                case "name_desc":
+                    pies = pies.OrderByDescending(p => p.Name);
+                    break;
+
+                case "name":
+                    pies = pies.OrderBy(p => p.Name);
+                    break;
+
+                case "id_desc":
+                    pies = pies.OrderByDescending(p => p.PieId);
+                    break;
+
+                case "id":
+                    pies = pies.OrderBy(p => p.PieId);
+                    break;
+
+                case "price_desc":
+                    pies = pies.OrderByDescending(p => p.Price);
+                    break;
+
+                case "price":
+                    pies = pies.OrderBy(p => p.Price);
+                    break;
+
+                default:
+                    pies = pies.OrderBy(p => p.PieId);
+                    break;
+            }
+
+            pageNumber ??= 1;
+
+            pies = pies.Skip((pageNumber.Value - 1) * pageSize).Take(pageSize);
+
+            return await pies.AsNoTracking().ToListAsync();
+        }
+
+        public async Task<IEnumerable<Pie>> SearchPies(string searchQuery, int? categoryId)
+        {
+            var pies = from p in _bethanysPieShopDbContext.Pies
+                       select p;
+
+            if (!string.IsNullOrEmpty(searchQuery))
+            {
+                pies = pies.Where(s => s.Name.Contains(searchQuery) || s.ShortDescription.Contains(searchQuery) || s.LongDescription.Contains(searchQuery));
+            }
+
+            if (categoryId != null)
+            {
+                pies = pies.Where(s => s.CategoryId == categoryId);
+            }
+
+            return await pies.ToListAsync();
+        }
     }
 }

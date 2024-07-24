@@ -1,5 +1,6 @@
 ﻿using BethanysPieShopAdmin.Models;
 using BethanysPieShopAdmin.Models.Repositories;
+using BethanysPieShopAdmin.Utilities;
 using BethanysPieShopAdmin.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -152,6 +153,62 @@ namespace BethanysPieShopAdmin.Controllers
 
             var selectedPie = await _pieRepository.GetPieByIdAsync(pieId.Value);
             return View(selectedPie);
+        }
+
+        private int pageSize = 5;
+
+        public async Task<IActionResult> IndexPaging(int? pageNumber)
+        {
+            var pies = await _pieRepository.GetPiesPagedAsync(pageNumber, pageSize);
+            pageNumber ??= 1;
+
+            var count = await _pieRepository.GetAllPiesCountAsync();
+
+            return View(new PagedList<Pie>(pies.ToList(), count, pageNumber.Value, pageSize));
+        }
+
+        public async Task<IActionResult> IndexPagingSorting(string sortBy, int? pageNumber)
+        {
+            ViewData["CurrentSort"] = sortBy;
+
+            ViewData["IdSortParam"] = String.IsNullOrEmpty(sortBy) || sortBy == "id_desc" ? "id" : "id_desc";
+            ViewData["NameSortParam"] = sortBy == "name" ? "name_desc" : "name";
+            ViewData["PriceSortParam"] = sortBy == "price" ? "price_desc" : "price";
+
+            pageNumber ??= 1;
+
+            var pies = await _pieRepository.GetPiesSortedAndPagedAsync(sortBy, pageNumber, pageSize);
+
+            var count = await _pieRepository.GetAllPiesCountAsync();
+
+            return View(new PagedList<Pie>(pies.ToList(), count, pageNumber.Value, pageSize));
+        }
+
+        public async Task<IActionResult> Search(string? searchQuery, int? searchCategory)
+        {
+            var allCategories = await _categoryRepository.GetAllCategoriesAsync();
+
+            IEnumerable<SelectListItem> selectListItems = new SelectList(allCategories, "CategoryId", "Name", null);
+
+            if (searchQuery != null)
+            {
+                var pies = await _pieRepository.SearchPies(searchQuery, searchCategory);
+
+                return View(new PieSearchViewModel()
+                {
+                    Pies = pies,
+                    SearchCategory = searchCategory,
+                    Categories = selectListItems,
+                    SearchQuery = searchQuery
+                });
+            }
+            return View(new PieSearchViewModel()
+            {
+                Pies = new List<Pie>(),
+                SearchCategory = null,
+                Categories = selectListItems,
+                SearchQuery = string.Empty
+            });
         }
     }
 }
