@@ -13,5 +13,7 @@
         Task<int> UpdateCategoryAsync(Category category);
 
         Task<int> DeleteCategoryAsync(int id);
+
+        Task<int> UpdateCategoryNamesAsync(List<Category> categories);
     }
 }
