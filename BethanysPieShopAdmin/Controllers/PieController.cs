@@ -4,6 +4,7 @@ using BethanysPieShopAdmin.Utilities;
 using BethanysPieShopAdmin.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 namespace BethanysPieShopAdmin.Controllers
 {
@@ -97,28 +98,92 @@ namespace BethanysPieShopAdmin.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(Pie pie)
         {
+            Pie pieToUpdate = await _pieRepository.GetPieByIdAsync(pie.PieId);
+
             try
             {
+                if (pieToUpdate == null)
+                {
+                    ModelState.AddModelError(string.Empty, "The pie you want to update doesn't exist or was already deleted by someone else.");
+                }
+
                 if (ModelState.IsValid)
                 {
                     await _pieRepository.UpdatePieAsync(pie);
                     return RedirectToAction(nameof(Index));
                 }
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                var exceptionPie = ex.Entries.Single();
+                var entityValues = (Pie)exceptionPie.Entity;
+                var databasePie = exceptionPie.GetDatabaseValues();
+
+                if (databasePie == null)
+                {
+                    ModelState.AddModelError(string.Empty, "The pie was already deleted by another user.");
+                }
                 else
                 {
-                    return BadRequest();
+                    var databaseValues = (Pie)databasePie.ToObject();
+
+                    if (databaseValues.Name != entityValues.Name)
+                    {
+                        ModelState.AddModelError("Pie.Name", $"Current value: {databaseValues.Name}");
+                    }
+                    if (databaseValues.Price != entityValues.Price)
+                    {
+                        ModelState.AddModelError("Pie.Price", $"Current value: {databaseValues.Price:c}");
+                    }
+                    if (databaseValues.ShortDescription != entityValues.ShortDescription)
+                    {
+                        ModelState.AddModelError("Pie.ShortDescription", $"Current value: {databaseValues.ShortDescription}");
+                    }
+                    if (databaseValues.LongDescription != entityValues.LongDescription)
+                    {
+                        ModelState.AddModelError("Pie.LongDescription", $"Current value: {databaseValues.LongDescription}");
+                    }
+                    if (databaseValues.AllergyInformation != entityValues.AllergyInformation)
+                    {
+                        ModelState.AddModelError("Pie.AllergyInformation", $"Current value: {databaseValues.AllergyInformation}");
+                    }
+                    if (databaseValues.ImageThumbnailUrl != entityValues.ImageThumbnailUrl)
+                    {
+                        ModelState.AddModelError("Pie.ImageThumbnailUrl", $"Current value: {databaseValues.ImageThumbnailUrl}");
+                    }
+                    if (databaseValues.ImageUrl != entityValues.ImageUrl)
+                    {
+                        ModelState.AddModelError("Pie.ImageUrl", $"Current value: {databaseValues.ImageUrl}");
+                    }
+                    if (databaseValues.IsPieOfTheWeek != entityValues.IsPieOfTheWeek)
+                    {
+                        ModelState.AddModelError("Pie.IsPieOfTheWeek", $"Current value: {databaseValues.IsPieOfTheWeek}");
+                    }
+                    if (databaseValues.InStock != entityValues.InStock)
+                    {
+                        ModelState.AddModelError("Pie.InStock", $"Current value: {databaseValues.InStock}");
+                    }
+                    if (databaseValues.CategoryId != entityValues.CategoryId)
+                    {
+                        ModelState.AddModelError("Pie.CategoryId", $"Current value: {databaseValues.CategoryId}");
+                    }
+
+                    ModelState.AddModelError(string.Empty, "The pie was modified already by another user. The database values are now shown. Hit Save again to store these values.");
+                    pieToUpdate.RowVersion = databaseValues.RowVersion;
+
+                    ModelState.Remove("Pie.RowVersion");
                 }
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", $"Updating the category failed, please try again! Error: {ex.Message}");
+                ModelState.AddModelError("", $"Updating the Pie failed, please try again! Error: {ex.Message}");
             }
 
             var allCategories = await _categoryRepository.GetAllCategoriesAsync();
 
             IEnumerable<SelectListItem> selectListItems = new SelectList(allCategories, "CategoryId", "Name", null);
 
-            PieEditViewModel pieEditViewModel = new() { Categories = selectListItems, Pie = pie };
+            PieEditViewModel pieEditViewModel = new() { Categories = selectListItems, Pie = pieToUpdate };
 
             return View(pieEditViewModel);
         }
