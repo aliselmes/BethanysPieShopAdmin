@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BethanysPieShopAdmin.Models.Repositories
 {
@@ -6,9 +7,13 @@ namespace BethanysPieShopAdmin.Models.Repositories
     {
         private readonly BethanysPieShopDbContext _bethanysPieShopDbContext;
 
-        public CategoryRepository(BethanysPieShopDbContext bethanysPieShopDbContext)
+        private IMemoryCache _memoryCache;
+        private const string AllCategoriesCacheName = "AllCategories";
+
+        public CategoryRepository(BethanysPieShopDbContext bethanysPieShopDbContext, IMemoryCache memoryCache)
         {
             _bethanysPieShopDbContext = bethanysPieShopDbContext;
+            _memoryCache = memoryCache;
         }
 
         public IEnumerable<Category> GetAllCategories()
@@ -18,7 +23,18 @@ namespace BethanysPieShopAdmin.Models.Repositories
 
         public async Task<IEnumerable<Category>> GetAllCategoriesAsync()
         {
-            return await _bethanysPieShopDbContext.Categories.OrderBy(p => p.CategoryId).AsNoTracking().ToListAsync();
+            List<Category> allCategories = null;
+
+            if (!_memoryCache.TryGetValue(AllCategoriesCacheName, out allCategories))
+            {
+                allCategories = await _bethanysPieShopDbContext.Categories.OrderBy(p => p.CategoryId).AsNoTracking().ToListAsync();
+
+                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60));
+
+                _memoryCache.Set(AllCategoriesCacheName, allCategories, cacheEntryOptions);
+            }
+
+            return allCategories;
         }
 
         public async Task<Category?> GetCategoryByIdAsync(int id)
@@ -37,7 +53,12 @@ namespace BethanysPieShopAdmin.Models.Repositories
             }
 
             _bethanysPieShopDbContext.Categories.Add(category);
-            return await _bethanysPieShopDbContext.SaveChangesAsync();
+
+            int result = await _bethanysPieShopDbContext.SaveChangesAsync();
+
+            _memoryCache.Remove(AllCategoriesCacheName);
+
+            return result;
         }
 
         public async Task<int> UpdateCategoryAsync(Category category)
@@ -57,7 +78,12 @@ namespace BethanysPieShopAdmin.Models.Repositories
                 categoryToUpdate.Description = category.Description;
 
                 _bethanysPieShopDbContext.Categories.Update(categoryToUpdate);
-                return await _bethanysPieShopDbContext.SaveChangesAsync();
+
+                int result = await _bethanysPieShopDbContext.SaveChangesAsync();
+
+                _memoryCache.Remove(AllCategoriesCacheName);
+
+                return result;
             }
             else
             {
@@ -80,7 +106,11 @@ namespace BethanysPieShopAdmin.Models.Repositories
             if (categoryToDelete != null)
             {
                 _bethanysPieShopDbContext.Categories.Remove(categoryToDelete);
-                return await _bethanysPieShopDbContext.SaveChangesAsync();
+                int result = await _bethanysPieShopDbContext.SaveChangesAsync();
+
+                _memoryCache.Remove(AllCategoriesCacheName);
+
+                return result;
             }
             else
             {
